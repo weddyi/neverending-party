@@ -11,33 +11,32 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "No API key configured" }, { status: 500 });
   }
 
-  const vibeDesc =
-    vibe === "mild"
-      ? "playful and cheeky, fun but not too personal"
-      : vibe === "spicy"
-      ? "bold and daring, gets personal and uncomfortable in a fun way"
-      : "absolutely savage, no mercy, maximum chaos";
-
   const playerList = Array.isArray(players) ? players.join(", ") : "the players";
 
-  const prompt = `You are the host of an adults-only party game called "NeverEnding Party".
+  const prompt = `You are the charismatic host of "NeverEnding Party" — the most entertaining adult party game ever made.
 
-Generate ONE ${category} question/prompt.
+Generate ONE ${category} for ${vibe} players in round ${round}.
 
-Vibe: ${vibeDesc}
-Round number: ${round} (questions get bolder as round number increases — round 1 is warm-up, round 10+ is intense)
 Players: ${playerList}
 
-Category rules:
-- Truth: A personal question they MUST answer honestly. Should make them squirm a little.
-- Dare: Something physical/social they must do RIGHT NOW in the room. Must be doable and fun.
-- Would You Rather: Two equally awkward/funny options. Format: "Would you rather... or...?"
-- Hot Take: A controversial opinion they must argue for 30 seconds. Format: "Hot take: defend the opinion that..."
-- Never Have I Ever: A statement. Format: "Never have I ever..."
-- Confess: Something embarrassing/secret they must reveal to the group.
+RULES FOR GREAT QUESTIONS:
+- Be specific and personal — use player names when possible
+- Questions should make people laugh OR make them squirm uncomfortably
+- Avoid generic questions — be creative and unexpected
+- For Truth: dig deep, make it personal, make them think
+- For Dare: physical, social, slightly embarrassing but safe
+- For Would You Rather: both options should be equally painful/funny
+- For Hot Take: controversial enough to spark debate
+- For Never Have I Ever: specific enough that someone definitely HAS done it
+- For Confess: something that reveals character
 
-Make it fun, bold, and appropriate for consenting adults. Personalize using player names when it adds spice.
-Return ONLY the question/prompt text. Nothing else. No quotes around it.`;
+Vibe escalation:
+- mild (round 1-5): playful, light, getting-to-know-you energy
+- spicy (round 6-15): personal, uncomfortable, real talk
+- savage (round 16+): no holds barred, maximum chaos
+
+NEVER repeat generic questions like "what's your biggest fear" — be creative!
+Return ONLY the question text.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",

@@ -139,6 +139,17 @@ function makeEmptyReactions(): Record<ReactionType, number> {
   return { funny: 0, shocking: 0, spicy: 0, bold: 0 };
 }
 
+// ── Shuffle ──────────────────────────────────────────────────────────────────
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // ── Hook ─────────────────────────────────────────────────────────────────────
 
 export interface GameHook {
@@ -184,6 +195,9 @@ export function useGame(): GameHook {
   const [showConfetti, setShowConfetti] = useState(false);
   const [meltdownAlert, setMeltdownAlert] = useState(false);
   const [showRoundSummary, setShowRoundSummary] = useState(false);
+
+  // Per-session randomized category order
+  const categoryOrderRef = useRef<Category[]>(shuffleArray(CATEGORIES));
 
   // Pre-generated question queue: up to 3 ahead
   const queueRef = useRef<QueuedQuestion[]>([]);
@@ -271,19 +285,24 @@ export function useGame(): GameHook {
   const nextCategory = useCallback(
     (current: Category, forceDare?: boolean): Category => {
       if (forceDare) return "Dare";
-      const idx = CATEGORIES.indexOf(current);
-      return CATEGORIES[(idx + 1) % CATEGORIES.length];
+      const order = categoryOrderRef.current;
+      const idx = order.indexOf(current);
+      return order[(idx + 1) % order.length];
     },
     []
   );
 
   const startGame = useCallback(async () => {
-    const players: Player[] = playerNames.slice(0, numPlayers).map(makeEmptyPlayer);
+    // Shuffle player order and category rotation fresh each session
+    const shuffledPlayers: Player[] = shuffleArray(playerNames.slice(0, numPlayers)).map(makeEmptyPlayer);
+    categoryOrderRef.current = shuffleArray(CATEGORIES);
     queueRef.current = [];
     usedQuestionsRef.current = new Set();
 
+    const firstCategory = categoryOrderRef.current[0];
+
     const initialState: GameState = {
-      players,
+      players: shuffledPlayers,
       vibe,
       currentPlayerIndex: 0,
       round: 1,
@@ -295,7 +314,7 @@ export function useGame(): GameHook {
       lastWildcard: 0,
       screen: "game",
       currentQuestion: null,
-      currentCategory: "Truth",
+      currentCategory: firstCategory,
       isLoading: true,
       usedQuestions: new Set(),
       questionHistory: [],
@@ -308,8 +327,8 @@ export function useGame(): GameHook {
 
     // Fetch first question + prefill queue simultaneously
     const [firstQ] = await Promise.all([
-      fetchQuestion("Truth", vibe, 1, players),
-      prefetchQuestions("Truth", 0, 1, players, vibe, false),
+      fetchQuestion(firstCategory, vibe, 1, shuffledPlayers),
+      prefetchQuestions(firstCategory, 0, 1, shuffledPlayers, vibe, false),
     ]);
 
     setGame((prev) =>
@@ -569,6 +588,7 @@ export function useGame(): GameHook {
     setScreen("welcome");
     queueRef.current = [];
     usedQuestionsRef.current = new Set();
+    categoryOrderRef.current = shuffleArray(CATEGORIES);
     setShowWildcard(false);
     setWildcardQuestion(null);
     setShowConfetti(false);
